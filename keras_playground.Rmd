@@ -3,9 +3,12 @@ title: "keras playground"
 output: html_notebook
 ---
 
+Code from the [Deep learning in R](https://github.com/jjallaire/deep-learning-with-r-notebooks) by [FChollet](https://twitter.com/fchollet).
+
+Uncomment and run this chunk if you encounter [this issue](https://github.com/rstudio/keras/issues/285).
 ```{r}
-#devtools::install_github('rstudio/keras')
-#keras::install_keras(tensorflow = 'gpu')
+# devtools::install_github('rstudio/keras')
+# keras::install_keras(tensorflow = 'gpu')
 ```
 
 

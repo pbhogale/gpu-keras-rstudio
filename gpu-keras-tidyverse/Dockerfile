@@ -1,15 +1,15 @@
-## Based on work by https://github.com/rocker-org/rocker/issues/273
-## and particularly https://github.com/rocker-org/rocker/issues/273#issuecomment-349814504
-##
-## Based on Ubuntu 16.04
+## see https://github.com/pbhogale/gpu-keras-rstudio
 
 FROM nvidia/cuda:9.0-cudnn7-runtime
+
+
+MAINTAINER "prasanna bhogale"
 
 ENV CRAN_URL https://cloud.r-project.org/
 
 RUN set -e \
       && apt-get -y update \
-      && apt-get -y install libapparmor1 libcurl4-openssl-dev libxml2-dev libssl-dev gdebi-core apt-transport-https pandoc
+      && apt-get -y install apt-utils libapparmor1 libcurl4-openssl-dev libxml2-dev libssl-dev gdebi-core apt-transport-https pandoc libssh2-1-dev libpython2.7 python-pip imagemagick libxt-dev libxml2-dev xterm
 
 RUN set -e \
       && grep '^DISTRIB_CODENAME' /etc/lsb-release \
@@ -19,19 +19,13 @@ RUN set -e \
       && apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E084DAB9 \
       && apt-get -y update \
       && apt-get -y upgrade \
-      && apt-get install -y --no-install-recommends r-base \
-      && apt-get install -y apt-utils \
+      && apt-get install -y --no-install-recommends \
+      r-base \
+      r-base-dev \
+      r-cran-littler \
       && apt-get -y autoremove \
       && apt-get clean
 
-
-
-RUN set -e \
-      && R -e "\
-      update.packages(ask = FALSE, repos = '${CRAN_URL}'); \
-      pkgs <- c('dbplyr', 'devtools', 'docopt', 'doParallel', 'foreach', 'gridExtra', 'rmarkdown', 'tidyverse'); \
-      install.packages(pkgs = pkgs, dependencies = TRUE, repos = '${CRAN_URL}'); \
-      sapply(pkgs, require, character.only = TRUE);"
 
 RUN set -e \
       && apt-get install -y curl \
@@ -53,23 +47,11 @@ RUN set -e \
     && apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E084DAB9 \
 	&& apt-get update \
     && apt-get upgrade -y -q \
-    && apt-get install -y --no-install-recommends \
-           r-base \
-           r-base-dev \
-           r-cran-littler \
-           libxml2-dev \
-           libxt-dev \
-           libssl-dev \
-           libcurl4-openssl-dev \
-           imagemagick \
-           python-pip \
-           libpython2.7 \
     && pip install --upgrade pip \
     && pip install virtualenv \
     && echo 'options(repos = c(CRAN = "https://cloud.r-project.org"))' >> /etc/R/Rprofile.site \
     && /usr/lib/R/site-library/littler/examples/install.r tensorflow keras \
-&& r -e "install.packages('devtools')" \
-&& r -e "devtools::install_github('rstudio/keras')" \
+&& r -e "install.packages(c('devtools', 'keras', 'xgboost', 'tidyverse', 'rmarkdown'))" \
 && r -e "keras::install_keras(tensorflow = 'gpu')"
 
 EXPOSE 8787
