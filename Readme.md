@@ -45,6 +45,8 @@ sudo nvidia-docker run --name deeplearning-r -d -p 8787:8787 -v ~/:/home/rstudio
 devtools::install_github('rstudio/keras')
 keras::install_keras(tensorflow = 'gpu')
 ```
+- If - after running smoothly - an error regarding a `.so` file (typically, python, CUDA, cudnn libraries are involved) unexpectedly pops up, re-starting the container with `sudo nvidia-docker restart deeplearning-r` usually resolves it.
+
 ## Notes
 
  - once done with a session, stop the container with `nvidia-docker stop deeplearning-r`.
