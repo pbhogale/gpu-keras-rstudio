@@ -5,7 +5,7 @@ Coaxing Rstudio+Keras+tensorflow to use your local GPU can be tricky. This is on
 **Disclaimer :** The Dockerfile needs re-factoring to be more efficient during the build process.
 **Inspired by** https://github.com/rocker-org/ml/.
 
-This repo contains a plausible (tested on NVIDIA GeForce 755M) docker container with rstudio server and the tidyverse and keras+tensorflow built on top of `nvidia/cuda:9.0-cudnn7-runtime`. The objective is to be able to run the code from the [Deep learning in R](https://github.com/jjallaire/deep-learning-with-r-notebooks) by [F. Chollet](https://twitter.com/fchollet). book given an NVIDIA GPU with drivers installed. The Docker container will install the CUDA and cudnn libraries needed.
+This repo contains a plausible (tested on NVIDIA GeForce 755M) docker container with rstudio server and the tidyverse and keras+tensorflow built on top of `nvidia/cuda:9.0-cudnn7-runtime`. The objective is to be able to run the code from the [Deep learning in R](https://github.com/jjallaire/deep-learning-with-r-notebooks) (by [F. Chollet](https://twitter.com/fchollet)) book given an NVIDIA GPU with drivers installed. The Docker container will install the CUDA and cudnn libraries needed.
 
 There is also an `.Rmd` file with some code snippets from the book, so that you can test if the setup works.
 
