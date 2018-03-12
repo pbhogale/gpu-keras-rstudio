@@ -26,7 +26,7 @@ See [this](https://github.com/rocker-org/rocker/issues/273),  [this](https://hub
 
 2. From the repo directory run the following (and then get a coffee. Typically, the build process will take some time) :
 ```
-nvidia-docker build --rm -t gpu-keras-tidyverse:1.0 gpu-keras-tidyverse
+sudo nvidia-docker build --rm -t gpu-keras-tidyverse:1.0 gpu-keras-tidyverse
 ```
 3. Run the container with
 ```

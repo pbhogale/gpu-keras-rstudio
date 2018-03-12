@@ -276,7 +276,7 @@ ggplot(average_mae_history, aes(x = epoch, y = validation_mae)) + geom_smooth()
 ```{r}
 model <- build_model()
 model %>% fit(train_data, train_targets,
-              epochs = 60, batch_size = 16, verbose = 0)
+              epochs = 80, batch_size = 16, verbose = 0)
 result <- model %>% evaluate(test_data, test_targets)
 print(result)
 ```
