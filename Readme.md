@@ -46,7 +46,7 @@ devtools::install_github('rstudio/keras')
 keras::install_keras(tensorflow = 'gpu')
 ```
 - If - after running smoothly - an error regarding a `.so` file (typically, python, CUDA, cudnn libraries are involved) unexpectedly pops up, re-starting the container with `sudo nvidia-docker restart deeplearning-r` usually resolves it.
-- Legacy versions of `nvidia-docker` and `docker-ce` might result in "Rstudio initialiyation error : Could not connect to service." Updating `nvidia-docker` using the [instructions here](https://github.com/NVIDIA/nvidia-docker) is highly recommended.
+- Legacy versions of `nvidia-docker` and `docker-ce` might result in "Rstudio initialization error : Could not connect to service." Updating `nvidia-docker` using the [instructions here](https://github.com/NVIDIA/nvidia-docker) is highly recommended.
 
 ## Notes
 
