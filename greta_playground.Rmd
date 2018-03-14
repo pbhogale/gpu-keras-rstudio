@@ -5,8 +5,9 @@ output:
     df_print: paged
 ---
 
-This notebook contains some worked out examples on the new - still in its infancy - PPL that joins R and Tensorflow : https://greta-dev.github.io/greta/index.html
+This notebook contains one simple worked out example with the new - still in its infancy - PPL in R with a Tensorflow backend : https://greta-dev.github.io/greta/index.html
 
+For a more mature PPL in Python also with a tensorflow backend, see [Edward](http://edwardlib.org/).
 
 ```{r, include=FALSE}
 rm(list=ls())
