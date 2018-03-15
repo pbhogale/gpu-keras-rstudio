@@ -120,16 +120,11 @@ RUN apt-get install -y --no-install-recommends wget software-properties-common p
   	&& /usr/lib/R/site-library/littler/examples/install2.r --error --deps TRUE \
 	bookdown rticles rmdshower DT DiagrammeR bayesplot
 
-RUN pip install typogrify \
-	&& pip install pygments \
+RUN pip install typogrify pygments markdown beautifulsoup4 \
 	&& rm -rf .cache \
 	&& git clone --recursive https://github.com/getpelican/pelican-themes ~/pelican-themes \
-	&& pelican-themes -i ~/pelican-themes/Flex
-
-RUN git clone --recursive https://github.com/getpelican/pelican-plugins ~/pelican-plugins
-
-RUN pip install markdown beautifulsoup4 \
-	&& rm -rf .cache
+	&& pelican-themes -i ~/pelican-themes/Flex \
+	&& git clone --recursive https://github.com/getpelican/pelican-plugins ~/pelican-plugins
 
 EXPOSE 8787
 
