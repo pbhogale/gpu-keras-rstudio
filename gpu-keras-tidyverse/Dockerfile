@@ -53,6 +53,7 @@ RUN set -e \
     && apt-get upgrade -y -q \
     && pip install --upgrade pip \
     && pip install virtualenv \
+    && pip install pelican \
     && rm -rf .cache \
     && echo 'options(repos = c(CRAN = "https://cloud.r-project.org"))' >> /etc/R/Rprofile.site \
     && /usr/lib/R/site-library/littler/examples/install.r tensorflow keras \
@@ -100,6 +101,7 @@ RUN apt-get install -y --no-install-recommends wget software-properties-common p
    		## just because
     	less \
     	vim \
+        git-all \
   	&& apt-get clean \
   	&& rm -rf /var/lib/apt/lists/ \
   	## Use tinytex for LaTeX installation
@@ -117,6 +119,17 @@ RUN apt-get install -y --no-install-recommends wget software-properties-common p
  	## And some nice R packages for publishing-related stuff
   	&& /usr/lib/R/site-library/littler/examples/install2.r --error --deps TRUE \
 	bookdown rticles rmdshower DT DiagrammeR bayesplot
+
+RUN pip install typogrify \
+	&& pip install pygments \
+	&& rm -rf .cache \
+	&& git clone --recursive https://github.com/getpelican/pelican-themes ~/pelican-themes \
+	&& pelican-themes -i ~/pelican-themes/Flex
+
+RUN git clone --recursive https://github.com/getpelican/pelican-plugins ~/pelican-plugins
+
+RUN pip install markdown beautifulsoup4 \
+	&& rm -rf .cache
 
 EXPOSE 8787
 
