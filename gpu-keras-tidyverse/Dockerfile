@@ -126,6 +126,15 @@ RUN pip install typogrify pygments markdown beautifulsoup4 \
 	&& pelican-themes -i ~/pelican-themes/Flex \
 	&& git clone --recursive https://github.com/getpelican/pelican-plugins ~/pelican-plugins
 
+RUN apt-get update -y \
+    && apt-get install -y --no-install-recommends \
+        libglu1-mesa-dev \
+    && apt-get autoremove \
+    && apt-get clean \
+    && /usr/lib/R/site-library/littler/examples/install2.r --error --deps TRUE \
+    vars prophet fanplot chron tseriesEntropy tseriesChaos pdfetch Quandl factorstochvol \
+    wavelets tidyquant Risk
+
 EXPOSE 8787
 
 CMD ["/usr/lib/rstudio-server/bin/rserver", "--server-daemonize=0", "--server-app-armor-enabled=0"]
