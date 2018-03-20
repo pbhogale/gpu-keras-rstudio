@@ -124,6 +124,8 @@ RUN pip install typogrify pygments markdown beautifulsoup4 \
 	&& rm -rf .cache \
 	&& git clone --recursive https://github.com/getpelican/pelican-themes ~/pelican-themes \
 	&& pelican-themes -i ~/pelican-themes/Flex \
+    && pelican-themes -i ~/pelican-themes/elegant \
+    && pelican-themes -i ~/pelican-themes/pelican-bootstrap3 \
 	&& git clone --recursive https://github.com/getpelican/pelican-plugins ~/pelican-plugins
 
 RUN apt-get update -y \
@@ -133,7 +135,8 @@ RUN apt-get update -y \
     && apt-get clean \
     && /usr/lib/R/site-library/littler/examples/install2.r --error --deps TRUE \
     vars prophet fanplot chron tseriesEntropy tseriesChaos pdfetch Quandl factorstochvol \
-    wavelets tidyquant Risk
+    wavelets tidyquant Risk fGarch \
+    && pelican-themes -i ~/pelican-themes/pelican-bootstrap3
 
 EXPOSE 8787
 
