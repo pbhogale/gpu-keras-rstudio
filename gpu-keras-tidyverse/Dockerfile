@@ -138,6 +138,10 @@ RUN apt-get update -y \
     wavelets tidyquant Risk fGarch \
     && pelican-themes -i ~/pelican-themes/pelican-bootstrap3
 
+RUN apt-get install -y --no-install-recommends libgsl-dev \
+    && /usr/lib/R/site-library/littler/examples/install2.r --error --deps TRUE \
+    tidytext janeaustenr shiny wordcloud sentimentr stringr gutenbergr ggthemes rsconnect
+
 EXPOSE 8787
 
 CMD ["/usr/lib/rstudio-server/bin/rserver", "--server-daemonize=0", "--server-app-armor-enabled=0"]
