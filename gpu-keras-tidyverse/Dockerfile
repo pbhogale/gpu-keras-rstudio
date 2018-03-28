@@ -1,6 +1,6 @@
 ## see https://github.com/pbhogale/gpu-keras-rstudio
 
-FROM nvidia/cuda:9.0-cudnn7-runtime
+FROM ubuntu:16.04
 
 
 MAINTAINER "prasanna bhogale"
@@ -58,7 +58,7 @@ RUN set -e \
     && echo 'options(repos = c(CRAN = "https://cloud.r-project.org"))' >> /etc/R/Rprofile.site \
     && /usr/lib/R/site-library/littler/examples/install.r tensorflow keras \
 	&& r -e "install.packages(c('devtools', 'keras', 'xgboost', 'tidyverse', 'rmarkdown', 'greta', 'usethis', 'docopt'))" \
-	&& r -e "keras::install_keras(tensorflow = 'gpu')" \
+	&& r -e "keras::install_keras()" \
     && apt-get -y autoremove \
     && apt-get clean
 
@@ -121,12 +121,7 @@ RUN apt-get install -y --no-install-recommends wget software-properties-common p
 	bookdown rticles rmdshower DT DiagrammeR bayesplot
 
 RUN pip install typogrify pygments markdown beautifulsoup4 \
-	&& rm -rf .cache \
-	&& git clone --recursive https://github.com/getpelican/pelican-themes ~/pelican-themes \
-	&& pelican-themes -i ~/pelican-themes/Flex \
-    && pelican-themes -i ~/pelican-themes/elegant \
-    && pelican-themes -i ~/pelican-themes/pelican-bootstrap3 \
-	&& git clone --recursive https://github.com/getpelican/pelican-plugins ~/pelican-plugins
+	&& rm -rf .cache
 
 RUN apt-get update -y \
     && apt-get install -y --no-install-recommends \
@@ -135,8 +130,7 @@ RUN apt-get update -y \
     && apt-get clean \
     && /usr/lib/R/site-library/littler/examples/install2.r --error --deps TRUE \
     vars prophet fanplot chron tseriesEntropy tseriesChaos pdfetch Quandl factorstochvol \
-    wavelets tidyquant Risk fGarch \
-    && pelican-themes -i ~/pelican-themes/pelican-bootstrap3
+    wavelets tidyquant Risk fGarch
 
 RUN apt-get install -y --no-install-recommends libgsl-dev \
     && /usr/lib/R/site-library/littler/examples/install2.r --error --deps TRUE \
