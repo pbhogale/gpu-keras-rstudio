@@ -58,7 +58,7 @@ RUN set -e \
     && echo 'options(repos = c(CRAN = "https://cloud.r-project.org"))' >> /etc/R/Rprofile.site \
     && /usr/lib/R/site-library/littler/examples/install.r tensorflow keras \
 	&& r -e "install.packages(c('devtools', 'keras', 'xgboost', 'tidyverse', 'rmarkdown', 'greta', 'usethis', 'docopt'))" \
-	&& r -e "keras::install_keras()" \
+	&& r -e "keras::install_keras(tensorflow = 'default')" \
     && apt-get -y autoremove \
     && apt-get clean
 

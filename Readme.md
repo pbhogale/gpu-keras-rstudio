@@ -33,6 +33,14 @@ sudo docker run --name deeplearning-r-no-cuda -d -p 8789:8787 -v ~/:/home/rstudi
 
 6. Open the `keras_playground.Rmd` notebook from the repo directory and try it out !
 
+## Known issues
+
+- In case an error of the type `Failed to load the native TensorFlow runtime.` turns up the first time you try to use keras, from the notebook just run
+```r
+library(keras)
+install_keras()
+library(keras)
+```
 
 ## Notes
 
