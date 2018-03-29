@@ -5,6 +5,7 @@ output: html_notebook
 
 ```{r}
 library(keras)
+install_keras()
 ```
 
 Code from the [Deep learning in R](https://github.com/jjallaire/deep-learning-with-r-notebooks) by [FChollet](https://twitter.com/fchollet).
@@ -14,6 +15,7 @@ Code from the [Deep learning in R](https://github.com/jjallaire/deep-learning-wi
 Page 112
 
 ```{r}
+library(keras)
 model <- keras_model_sequential() %>%
     layer_conv_2d(filters = 32, kernel_size = c(3, 3), activation = "relu", input_shape = c(28, 28, 1)) %>%
     layer_max_pooling_2d(pool_size = c(2, 2)) %>%

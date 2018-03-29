@@ -1,0 +1,101 @@
+---
+title: "Introduction to convnets"
+output: 
+  html_notebook: 
+    theme: cerulean
+    highlight: textmate
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+
+***
+
+This notebook contains the code samples found in Chapter 5, Section 1 of [Deep Learning with R](https://www.manning.com/books/deep-learning-with-r). Note that the original text features far more content, in particular further explanations and figures: in this notebook, you will only find source code and related comments.
+
+***
+
+We're about to dive into the theory of what convnets are and why they have been so successful at computer vision tasks. But first, let's take a practical look at a simple convnet example. It uses a convnet to classify MNIST digits, a task we performed in chapter 2 using a densely connected network (our test accuracy then was 97.8%). Even though the convnet will be basic, its accuracy will blow out of the water that of the densely connected model from chapter 2.
+
+The following lines of code show you what a basic convnet looks like.  It's a stack of `layer_conv_2d()` and `layer_max_pooling_2d()` layers. You'll see in a minute exactly what they do.
+
+Importantly, a convnet takes as input tensors of shape `(image_height, image_width, image_channels)` (not including the batch dimension). In this case, we'll configure the convnet to process inputs of size `(28, 28, 1)`, which is the format of MNIST images. We do this by passing the argument `input_shape = c(28, 28, 1)` to the first layer.
+
+
+```{r}
+library(keras)
+
+model <- keras_model_sequential() %>% 
+  layer_conv_2d(filters = 32, kernel_size = c(3, 3), activation = "relu",
+                input_shape = c(28, 28, 1)) %>% 
+  layer_max_pooling_2d(pool_size = c(2, 2)) %>% 
+  layer_conv_2d(filters = 64, kernel_size = c(3, 3), activation = "relu") %>% 
+  layer_max_pooling_2d(pool_size = c(2, 2)) %>% 
+  layer_conv_2d(filters = 64, kernel_size = c(3, 3), activation = "relu")
+```
+
+Let's display the architecture of our convnet so far:
+
+```{r}
+summary(model)
+```
+
+You can see that the output of every `layer_conv_2d()` and `layer_max_pooling_2d()` is a 3D tensor of shape `(height, width, channels)`. The width and height dimensions tend to shrink as you go deeper in the network. The number of channels is controlled by the first argument passed to the `layer_conv_2d()` (32 or 64).
+
+The next step is to feed the last output tensor (of shape `(3, 3, 64)`) into a densely connected classifier network like those you're already familiar with: a stack of dense layers. These classifiers process vectors, which are 1D, whereas the current output is a 3D tensor. First we have to flatten the 3D outputs to 1D, and then add a few dense layers on top.
+
+```{r}
+model <- model %>% 
+  layer_flatten() %>% 
+  layer_dense(units = 64, activation = "relu") %>% 
+  layer_dense(units = 10, activation = "softmax")
+```
+
+We are going to do 10-way classification, so we use a final layer with 10 outputs and a softmax activation. Now here's what our network looks like:
+
+```{r}
+summary(model)
+```
+
+As you can see, the `(3, 3, 64)` outputs are flattened into vectors of shape `(576)` before going through two dense layers.
+
+Now, let's train the convnet on the MNIST digits. We'll reuse a lot of the code from the MNIST example in chapter 
+2.
+
+```{r, echo=TRUE, results='hide'}
+mnist <- dataset_mnist()
+c(c(train_images, train_labels), c(test_images, test_labels)) %<-% mnist
+
+train_images <- array_reshape(train_images, c(60000, 28, 28, 1))
+train_images <- train_images / 255
+
+test_images <- array_reshape(test_images, c(10000, 28, 28, 1))
+test_images <- test_images / 255
+
+train_labels <- to_categorical(train_labels)
+test_labels <- to_categorical(test_labels)
+
+model %>% compile(
+  optimizer = "rmsprop",
+  loss = "categorical_crossentropy",
+  metrics = c("accuracy")
+)
+              
+model %>% fit(
+  train_images, train_labels, 
+  epochs = 5, batch_size=64
+)
+```
+
+Let's evaluate the model on the test data:
+
+```{r, echo=TRUE, results='hide'}
+results <- model %>% evaluate(test_images, test_labels)
+```
+
+```{r}
+results
+```
+
+While our densely-connected network from Chapter 2 had a test accuracy of 97.8%, our basic convnet has a test accuracy of 99%: we decreased our error rate by 68% (relative). Not bad! 

@@ -1,0 +1,302 @@
+---
+title: "Sequence processing with convnets"
+output: 
+  html_notebook: 
+    theme: cerulean
+    highlight: textmate
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+
+***
+
+This notebook contains the second code sample found in Chapter 6, Section 4 of [Deep Learning with R](https://www.manning.com/books/deep-learning-with-r). Note that the original text features far more content, in particular further explanations and figures: in this notebook, you will only find source code and related comments.
+
+***
+
+## Implementing a 1D convnet
+  
+In Keras, you use a 1D convnet via the `layer_conv_1d()` function, which has an interface similar to `layer_conv_2d()`. It takes as input 3D tensors with shape `(samples, time, features)` and returns similarly shaped 3D tensors. The convolution window is a 1D window on the temporal axis: the second axis in the input tensor.
+
+Let's build a simple two-layer 1D convnet and apply it to the IMDB sentiment-classification task you're already familiar with. As a reminder, this is the code for obtaining and preprocessing the data.
+
+```{r}
+library(keras)
+
+max_features <- 10000
+max_len <- 500
+
+cat("Loading data...\n")
+imdb <- dataset_imdb(num_words = max_features)
+c(c(x_train, y_train), c(x_test, y_test)) %<-% imdb 
+cat(length(x_train), "train sequences\n")
+cat(length(x_test), "test sequences")
+
+cat("Pad sequences (samples x time)\n")
+x_train <- pad_sequences(x_train, maxlen = max_len)
+x_test <- pad_sequences(x_test, maxlen = max_len)
+cat("x_train shape:", dim(x_train), "\n")
+cat("x_test shape:", dim(x_test), "\n")
+```
+
+1D convnets are structured in the same way as their 2D counterparts, which you used in chapter 5: they consist of a stack of `layer_conv_1d()` and `layer_max_pooling_1d()`, ending in either a global pooling layer or a `layer_flatten()`, that turn the 3D outputs into 2D outputs, allowing you to add one or more dense layers to the model for classification or regression.
+
+One difference, though, is the fact that you can afford to use larger convolution windows with 1D convnets. With a 2D convolution layer, a 3 × 3 convolution window contains 3 * 3 = 9 feature vectors; but with a 1D convolution layer, a convolution window of size 3 contains only 3 feature vectors. You can thus easily afford 1D convolution windows of size 7 or 9.
+
+This is the example 1D convnet for the IMDB dataset.
+
+```{r}
+model <- keras_model_sequential() %>% 
+  layer_embedding(input_dim = max_features, output_dim = 128,
+                  input_length = max_len) %>% 
+  layer_conv_1d(filters = 32, kernel_size = 7, activation = "relu") %>% 
+  layer_max_pooling_1d(pool_size = 5) %>% 
+  layer_conv_1d(filters = 32, kernel_size = 7, activation = "relu") %>% 
+  layer_global_max_pooling_1d() %>% 
+  layer_dense(units = 1)
+
+summary(model)
+```
+
+```{r, echo=FALSE, results='hide'}
+
+model %>% compile(
+  optimizer = optimizer_rmsprop(lr = 1e-4),
+  loss = "binary_crossentropy",
+  metrics = c("acc")
+)
+
+history <- model %>% fit(
+  x_train, y_train,
+  epochs = 10,
+  batch_size = 128,
+  validation_split = 0.2
+)
+```
+
+Here are our training and validation results: validation accuracy is somewhat lower than that of the LSTM we used two sections ago, but runtime is faster, both on CPU and GPU (albeit the exact speedup will vary greatly depending on your exact configuration). At that point, we could re-train this model for the right number of epochs (8), and run it on the test set. This is a convincing demonstration that a 1D convnet can offer a fast, cheap alternative to a recurrent network on a word-level sentiment classification task.
+
+```{r}
+plot(history)
+```
+
+## Combining CNNs and RNNs to process long sequences
+
+
+Because 1D convnets process input patches independently, they are not sensitive to the order of the timesteps (beyond a local scale, the size of the convolution windows), unlike RNNs. Of course, in order to be able to recognize longer-term patterns, one could stack many convolution layers and pooling layers, resulting in upper layers that would "see" long chunks of the original inputs -- but that's still a fairly weak way to induce order-sensitivity. One way to evidence this weakness is to try 1D convnets on the temperature forecasting problem from the previous section, where order-sensitivity was key to produce good predictions. Let's see:
+
+```{r}
+library(tibble)
+library(readr)
+
+data_dir <- "~/Downloads/jena_climate"
+fname <- file.path(data_dir, "jena_climate_2009_2016.csv")
+data <- read_csv(fname)
+
+data <- data.matrix(data[,-1])
+
+train_data <- data[1:200000,]
+mean <- apply(train_data, 2, mean)
+std <- apply(train_data, 2, sd)
+data <- scale(data, center = mean, scale = std)
+
+generator <- function(data, lookback, delay, min_index, max_index,
+                      shuffle = FALSE, batch_size = 128, step = 6) {
+  if (is.null(max_index))
+    max_index <- nrow(data) - delay - 1
+  i <- min_index + lookback
+  function() {
+    if (shuffle) {
+      rows <- sample(c((min_index+lookback):max_index), size = batch_size)
+    } else {
+      if (i + batch_size >= max_index)
+        i <<- min_index + lookback
+      rows <- c(i:min(i+batch_size, max_index))
+      i <<- i + length(rows)
+    }
+    
+    samples <- array(0, dim = c(length(rows), 
+                                lookback / step,
+                                dim(data)[[-1]]))
+    targets <- array(0, dim = c(length(rows)))
+                     
+    for (j in 1:length(rows)) {
+      indices <- seq(rows[[j]] - lookback, rows[[j]], 
+                     length.out = dim(samples)[[2]])
+      samples[j,,] <- data[indices,]
+      targets[[j]] <- data[rows[[j]] + delay,2]
+    }            
+    
+    list(samples, targets)
+  }
+}
+
+lookback <- 1440
+step <- 6
+delay <- 144
+batch_size <- 128
+
+train_gen <- generator(
+  data,
+  lookback = lookback,
+  delay = delay,
+  min_index = 1,
+  max_index = 200000,
+  shuffle = TRUE,
+  step = step, 
+  batch_size = batch_size
+)
+
+val_gen = generator(
+  data,
+  lookback = lookback,
+  delay = delay,
+  min_index = 200001,
+  max_index = 300000,
+  step = step,
+  batch_size = batch_size
+)
+
+test_gen <- generator(
+  data,
+  lookback = lookback,
+  delay = delay,
+  min_index = 300001,
+  max_index = NULL,
+  step = step,
+  batch_size = batch_size
+)
+
+# This is how many steps to draw from `val_gen`
+# in order to see the whole validation set:
+val_steps <- (300000 - 200001 - lookback) / batch_size
+
+  # This is how many steps to draw from `test_gen`
+# in order to see the whole test set:
+test_steps <- (nrow(data) - 300001 - lookback) / batch_size
+```
+
+```{r, echo=TRUE, results='hide'}
+model <- keras_model_sequential() %>% 
+  layer_conv_1d(filters = 32, kernel_size = 5, activation = "relu",
+                input_shape = list(NULL, dim(data)[[-1]])) %>% 
+  layer_max_pooling_1d(pool_size = 3) %>% 
+  layer_conv_1d(filters = 32, kernel_size = 5, activation = "relu") %>% 
+  layer_max_pooling_1d(pool_size = 3) %>% 
+  layer_conv_1d(filters = 32, kernel_size = 5, activation = "relu") %>% 
+  layer_global_max_pooling_1d() %>% 
+  layer_dense(units = 1)
+
+
+model %>% compile(
+  optimizer = optimizer_rmsprop(),
+  loss = "mae"
+)
+
+history <- model %>% fit_generator(
+  train_gen,
+  steps_per_epoch = 500,
+  epochs = 20,
+  validation_data = val_gen,
+  validation_steps = val_steps
+)
+```
+
+Here are our training and validation Mean Absolute Errors:
+
+```{r}
+plot(history)
+```
+
+The validation MAE stays in the 0.40s: you can't even beat the common-sense baseline using the small convnet. Again, this is because the convnet looks for patterns anywhere in the input timeseries and has no knowledge of the temporal position of a pattern it sees (toward the beginning, toward the end, and so on). Because more recent data points should be interpreted differently from older datapoints in the case of this specific forecasting problem, the convnet fails at producing meaningful results. This limitation of convnets isn't an issue with the IMDB data, because patterns of keywords associated with a positive or negative sentiment are informative independently of where they're found in the input sentences.
+
+One strategy to combine the speed and lightness of convnets with the order-sensitivity of RNNs is to use a 1D convnet as a preprocessing step before a RNN (see figure 6.30). This is especially beneficial when you're dealing with sequences that are so long they can't realistically be processed with RNNs, such as sequences with thousands of steps. The convnet will turn the long input sequence into much shorter (downsampled) sequences of higher-level features. This sequence of extracted features then becomes the input to the RNN part of the network.
+
+This technique isn't seen often in research papers and practical applications, possibly because it isn't well known. It's effective and ought to be more common. Let's try it on the temperature-forecasting dataset. Because this strategy allows you to manipulate much longer sequences, you can either look at data from longer ago (by increasing the `lookback` parameter of the data generator) or look at high-resolution timeseries (by decreasing the `step` parameter of the generator). Here, somewhat arbitrarily, you'll use a `step` that's half as large, resulting in a timeseries twice as long, where the weather data is sampled at a rate of 1 point per 30 minutes. The example reuses the `generator` function defined earlier.
+
+
+```{r}
+# This was previously set to 6 (one point per hour).
+# Now 3 (one point per 30 min).
+step <- 3 
+lookback <- 720  # Unchanged
+delay <- 144  # Unchanged
+  
+train_gen <- generator(
+  data,
+  lookback = lookback,
+  delay = delay,
+  min_index = 1,
+  max_index = 200000,
+  shuffle = TRUE,
+  step = step
+)
+
+val_gen <- generator(
+  data,
+  lookback = lookback,
+  delay = delay,
+  min_index = 200001,
+  max_index = 300000,
+  step = step
+)
+
+test_gen <- generator(
+  data,
+  lookback = lookback,
+  delay = delay,
+  min_index = 300001,
+  max_index = NULL,
+  step = step
+)
+
+val_steps <- (300000 - 200001 - lookback) / 128
+test_steps <- (nrow(data) - 300001 - lookback) / 128
+```
+
+This is the model, starting with two `layer_conv_1d()` and following up with a `layer_gru()`:
+
+```{r}
+model <- keras_model_sequential() %>% 
+  layer_conv_1d(filters = 32, kernel_size = 5, activation = "relu",
+                input_shape = list(NULL, dim(data)[[-1]])) %>% 
+  layer_max_pooling_1d(pool_size = 3) %>% 
+  layer_conv_1d(filters = 32, kernel_size = 5, activation = "relu") %>% 
+  layer_gru(units = 32, dropout = 0.1, recurrent_dropout = 0.5) %>% 
+  layer_dense(units = 1)
+
+summary(model)
+```
+
+```{r, echo=TRUE, results='hide'}
+model %>% compile(
+  optimizer = optimizer_rmsprop(),
+  loss = "mae"
+)
+
+history <- model %>% fit_generator(
+  train_gen,
+  steps_per_epoch = 500,
+  epochs = 20,
+  validation_data = val_gen,
+  validation_steps = val_steps
+)
+```
+
+```{r}
+plot(history)
+```
+
+Judging from the validation loss, this setup is not quite as good as the regularized GRU alone, but it's significantly faster. It is looking at twice more data, which in this case doesn't appear to be hugely helpful, but may be important for other datasets.
+
+## Wrapping up
+
+Here's what you should take away from this section:
+
+* In the same way that 2D convnets perform well for processing visual patterns in 2D space, 1D convnets perform well for processing temporal patterns. They offer a faster alternative to RNNs on some problems, in particular natural-lanuage processing tasks.
+* Typically, 1D convnets are structured much like their 2D equivalents from the world of computer vision:they consist of stacks of `layer_conv_1d()` and `layer_max_pooling_1d()`, ending in a global pooling operation or flattening operation.
+* Because RNNs are extremely expensive for processing very long sequences, but 1D convnets are cheap, it can be a good idea to use a 1D convnet as a preprocessing step before a RNN, shortening the sequence and extracting useful representations for the RNN to process.
+
+One useful and important concept that we won't cover in these pages is that of 1D convolution with dilated kernels.

@@ -1,0 +1,142 @@
+---
+title: "Understanding recurrent neural networks"
+output: 
+  html_notebook: 
+    theme: cerulean
+    highlight: textmate
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+
+***
+
+This notebook contains the code samples found in Chapter 6, Section 2 of [Deep Learning with R](https://www.manning.com/books/deep-learning-with-r). Note that the original text features far more content, in particular further explanations and figures: in this notebook, you will only find source code and related comments.
+
+***
+
+## A first recurrent layer in Keras
+
+The process you just naively implemented in R corresponds to an actual Keras layer -- `layer_simple_rnn()`.
+
+```{r eval=FALSE}
+layer_simple_rnn(units = 32)
+```
+
+There is one minor difference: `layer_simple_rnn()` processes batches of sequences, like all other Keras layers, not a single sequence as in the R example. This means it takes inputs of shape `(batch_size, timesteps, input_features)`, rather than `(timesteps, input_features)`.
+
+Like all recurrent layers in Keras, `layer_simple_rnn()` can be run in two different modes: it can return either the full sequences of successive outputs for each timestep (a 3D tensor of shape `(batch_size, timesteps, output_features)`) or only the last output for each input sequence (a 2D tensor of shape `(batch_size, output_features)`). These two modes are controlled by the `return_sequences` constructor argument. Let's look at an example that uses `layer_simple_rnn()` and returns the last state:
+
+
+
+```{r}
+library(keras)
+model <- keras_model_sequential() %>% 
+  layer_embedding(input_dim = 10000, output_dim = 32) %>% 
+  layer_simple_rnn(units = 32)
+
+summary(model)
+```
+
+```{r}
+model <- keras_model_sequential() %>% 
+  layer_embedding(input_dim = 10000, output_dim = 32) %>% 
+  layer_simple_rnn(units = 32, return_sequences = TRUE)
+
+summary(model)
+```
+
+It is sometimes useful to stack several recurrent layers one after the other in order to increase the representational power of a network. 
+In such a setup, you have to get all intermediate layers to return full sequences:
+
+```{r}
+model <- keras_model_sequential() %>% 
+  layer_embedding(input_dim = 10000, output_dim = 32) %>% 
+  layer_simple_rnn(units = 32, return_sequences = TRUE) %>% 
+  layer_simple_rnn(units = 32, return_sequences = TRUE) %>%
+  layer_simple_rnn(units = 32, return_sequences = TRUE) %>%
+  layer_simple_rnn(units = 32)  # This last layer only returns the last outputs.
+
+summary(model)
+```
+
+Now let's try to use such a model on the IMDB movie review classification problem. First, let's preprocess the data:
+
+```{r}
+library(keras)
+
+max_features <- 10000  # Number of words to consider as features
+maxlen <- 500  # Cuts off texts after this many words (among the max_features most common words)
+batch_size <- 32
+
+cat("Loading data...\n")
+imdb <- dataset_imdb(num_words = max_features)
+c(c(input_train, y_train), c(input_test, y_test)) %<-% imdb 
+cat(length(input_train), "train sequences\n")
+cat(length(input_test), "test sequences")
+
+cat("Pad sequences (samples x time)\n")
+input_train <- pad_sequences(input_train, maxlen = maxlen)
+input_test <- pad_sequences(input_test, maxlen = maxlen)
+cat("input_train shape:", dim(input_train), "\n")
+cat("input_test shape:", dim(input_test), "\n")
+```
+
+Let's train a simple recurrent network using a `layer_embedding()` and `layer_simple_rnn()`.
+
+```{r, echo=TRUE, results='hide'}
+model <- keras_model_sequential() %>%
+  layer_embedding(input_dim = max_features, output_dim = 32) %>%
+  layer_simple_rnn(units = 32) %>%
+  layer_dense(units = 1, activation = "sigmoid")
+
+model %>% compile(
+  optimizer = "rmsprop",
+  loss = "binary_crossentropy",
+  metrics = c("acc")
+)
+
+history <- model %>% fit(
+  input_train, y_train,
+  epochs = 10,
+  batch_size = 128,
+  validation_split = 0.2
+)
+```
+
+Let's display the training and validation loss and accuracy:
+
+```{r}
+plot(history)
+```
+
+As a reminder, in chapter 3, the first naive approach to this dataset got you to a test accuracy of 88%. Unfortunately, this small recurrent network doesn't perform well compared to this baseline (only 84% validation accuracy). Part of the problem is that your inputs only consider the first 500 words, rather than full sequences -- hence the RNN has access to less information than the earlier baseline model. The remainder of the problem is that `layer_simple_rnn()`  isn't good at processing long sequences, such as text. Other types of recurrent layers perform much better. Let's look at some more advanced layers.
+
+## A concrete LSTM example in Keras
+
+Now let's switch to more practical concerns: we will set up a model using a LSTM layer and train it on the IMDB data. Here's the network,similar to the one with `layer_simple_rnn()` that we just presented. We only specify the output dimensionality of the LSTM layer, and leave every  other argument (there are lots) to the Keras defaults. Keras has good defaults, and things will almost always "just work" without you having to spend time tuning parameters by hand.
+
+```{r, echo=TRUE, results='hide'}
+model <- keras_model_sequential() %>% 
+  layer_embedding(input_dim = max_features, output_dim = 32) %>% 
+  layer_lstm(units = 32) %>% 
+  layer_dense(units = 1, activation = "sigmoid")
+
+model %>% compile(
+  optimizer = "rmsprop", 
+  loss = "binary_crossentropy", 
+  metrics = c("acc")
+)
+
+history <- model %>% fit(
+  input_train, y_train,
+  epochs = 10,
+  batch_size = 128,
+  validation_split = 0.2
+)
+```
+
+```{r}
+plot(history)
+```
