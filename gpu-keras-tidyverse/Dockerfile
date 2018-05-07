@@ -51,7 +51,7 @@ RUN set -e \
     && apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E084DAB9 \
 	&& apt-get update \
     && apt-get upgrade -y -q \
-    && pip install --upgrade pip \
+    && pip install --upgrade pip==9.0.3 \
     && pip install virtualenv \
     && pip install pelican \
     && rm -rf .cache \
