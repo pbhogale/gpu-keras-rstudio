@@ -135,7 +135,7 @@ RUN apt-get update -y \
     && apt-get clean \
     && /usr/lib/R/site-library/littler/examples/install2.r --error --deps TRUE \
     vars prophet fanplot chron tseriesEntropy tseriesChaos pdfetch Quandl factorstochvol \
-    wavelets tidyquant Risk fGarch \
+    wavelets Risk fGarch \
     && pelican-themes -i ~/pelican-themes/pelican-bootstrap3
 
 RUN apt-get install -y --no-install-recommends libgsl-dev \
