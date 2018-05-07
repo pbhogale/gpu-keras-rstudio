@@ -38,7 +38,7 @@ RUN set -e \
 
 RUN set -e \
     && useradd -m -d /home/rstudio rstudio \
-    && echo rstudio:rstudio \
+    && echo rstudio:rstudioTheLegendOfZelda \
     | chpasswd \
     && apt-get -y autoremove \
     && apt-get clean
