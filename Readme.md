@@ -34,7 +34,7 @@ sudo nvidia-docker run --name deeplearning-r -d -p 8787:8787 -v ~/:/home/rstudio
 ```
 4. In your browser, navigate to http://localhost:8787/
 
-5. Login with rstudio:rstudio
+5. Login with rstudio:rstudio (or go for easter egg hunt in Dockerfile for the correct password.. It might be "rstudioTheLegendOfZelda" ;)
 
 6. Open the `keras_playground.Rmd` notebook from the repo directory and try it out !
 
